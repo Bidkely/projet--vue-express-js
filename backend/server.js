@@ -12,12 +12,21 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Routes
+app.use('/api/clients', require('./routes/clientRoutes'));
+
 // Route de test
 app.get('/api/test', (req, res) => {
-  res.json({ message: 'Backend Express fonctionne sur Linux !' });
+    res.json({ message: 'Backend Express fonctionne sur Linux !' });
+});
+
+// Route racine
+app.get('/', (req, res) => {
+    res.send('Bienvenue sur mon backend Express ! 🚀');
 });
 
 // Démarrer le serveur
 app.listen(PORT, () => {
-  console.log(`Serveur backend démarré sur http://localhost:${PORT}`);
+    console.log(`🚀 Serveur backend sur http://localhost:${PORT}`);
+    console.log(`📋 API clients: http://localhost:${PORT}/api/clients`);
 });
