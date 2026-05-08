@@ -1,50 +1,68 @@
+cat > src/views/BilanView.vue << 'EOF'
 <template>
     <div class="h-full flex flex-col">
+        <!-- Entête -->
         <div class="flex items-center space-x-3 mb-4 flex-shrink-0">
             <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl flex items-center justify-center shadow-lg">
                 <span class="text-white text-xl">📊</span>
             </div>
-            <h1 class="text-2xl font-bold text-gray-800">Bilan</h1>
+            <h1 class="text-2xl font-bold text-gray-800">Bilan & Graphique</h1>
         </div>
 
-        <!-- Cartes en ligne -->
+        <!-- Cartes statistiques -->
         <div class="grid grid-cols-3 gap-4 mb-6 flex-shrink-0">
-            <div class="card-glass p-4 text-center hover:scale-105 transition-all">
+            <div class="card-glass p-4 text-center hover:scale-105 transition-all duration-300">
                 <div class="text-3xl mb-2">💰</div>
-                <div class="text-xs text-gray-500">Total</div>
-                <div class="text-xl font-bold text-green-600">{{ formatSolde(bilan.total || 0) }}</div>
+                <div class="text-xs text-gray-500 uppercase font-semibold">Solde Total</div>
+                <div class="text-xl font-bold text-green-600 mt-2">{{ formatSolde(bilan.total || 0) }}</div>
             </div>
-            <div class="card-glass p-4 text-center hover:scale-105 transition-all">
+            <div class="card-glass p-4 text-center hover:scale-105 transition-all duration-300">
                 <div class="text-3xl mb-2">📉</div>
-                <div class="text-xs text-gray-500">Minimum</div>
-                <div class="text-xl font-bold text-orange-600">{{ formatSolde(bilan.min || 0) }}</div>
+                <div class="text-xs text-gray-500 uppercase font-semibold">Solde Minimum</div>
+                <div class="text-xl font-bold text-orange-600 mt-2">{{ formatSolde(bilan.min || 0) }}</div>
             </div>
-            <div class="card-glass p-4 text-center hover:scale-105 transition-all">
+            <div class="card-glass p-4 text-center hover:scale-105 transition-all duration-300">
                 <div class="text-3xl mb-2">📈</div>
-                <div class="text-xs text-gray-500">Maximum</div>
-                <div class="text-xl font-bold text-blue-600">{{ formatSolde(bilan.max || 0) }}</div>
+                <div class="text-xs text-gray-500 uppercase font-semibold">Solde Maximum</div>
+                <div class="text-xl font-bold text-blue-600 mt-2">{{ formatSolde(bilan.max || 0) }}</div>
             </div>
         </div>
 
         <!-- Graphique -->
-        <div class="card-glass flex-1 flex flex-col items-center justify-center p-4">
-            <canvas ref="chartCanvas" class="w-full max-h-64"></canvas>
+        <div class="card-glass flex-1 flex flex-col items-center justify-center p-6 mb-4">
+            <canvas ref="chartCanvas" class="w-full max-h-80"></canvas>
         </div>
 
-        <!-- Légende compacte -->
-        <div class="flex justify-center space-x-4 mt-4 flex-shrink-0">
-            <div class="flex items-center space-x-1">
-                <div class="w-3 h-3 bg-red-500 rounded-full"></div>
-                <span class="text-xs text-gray-600">&lt;1000€</span>
+        <!-- Légende améliorée - plus grande et plus visible -->
+        <div class="grid grid-cols-3 gap-4 mt-2 flex-shrink-0">
+            <div class="bg-red-50 rounded-xl p-3 text-center border border-red-200">
+                <div class="flex items-center justify-center space-x-2 mb-1">
+                    <div class="w-5 h-5 bg-red-500 rounded-full shadow-md"></div>
+                    <span class="font-bold text-red-700 text-base">Insuffisant</span>
+                </div>
+                <div class="text-xs text-red-600">Solde &lt; 1 000 €</div>
             </div>
-            <div class="flex items-center space-x-1">
-                <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                <span class="text-xs text-gray-600">1000-5000€</span>
+            
+            <div class="bg-yellow-50 rounded-xl p-3 text-center border border-yellow-200">
+                <div class="flex items-center justify-center space-x-2 mb-1">
+                    <div class="w-5 h-5 bg-yellow-500 rounded-full shadow-md"></div>
+                    <span class="font-bold text-yellow-700 text-base">Moyen</span>
+                </div>
+                <div class="text-xs text-yellow-600">Solde 1 000 - 5 000 €</div>
             </div>
-            <div class="flex items-center space-x-1">
-                <div class="w-3 h-3 bg-green-500 rounded-full"></div>
-                <span class="text-xs text-gray-600">&gt;5000€</span>
+            
+            <div class="bg-green-50 rounded-xl p-3 text-center border border-green-200">
+                <div class="flex items-center justify-center space-x-2 mb-1">
+                    <div class="w-5 h-5 bg-green-500 rounded-full shadow-md"></div>
+                    <span class="font-bold text-green-700 text-base">Élevé</span>
+                </div>
+                <div class="text-xs text-green-600">Solde &gt; 5 000 €</div>
             </div>
+        </div>
+
+        <!-- Information additionnelle -->
+        <div class="mt-4 p-3 bg-gray-50 rounded-xl text-center text-sm text-gray-500 flex-shrink-0">
+            📊 Le graphique montre la répartition des clients par catégorie de solde
         </div>
     </div>
 </template>
@@ -90,17 +108,45 @@ const renderChart = () => {
     chart = new Chart(chartCanvas.value.getContext('2d'), {
         type: 'doughnut',
         data: {
-            labels: ['Insuffisant', 'Moyen', 'Élevé'],
+            labels: ['Insuffisant (<1000€)', 'Moyen (1000-5000€)', 'Élevé (>5000€)'],
             datasets: [{
                 data: [categories.insuffisant, categories.moyen, categories.eleve],
                 backgroundColor: ['#ef4444', '#eab308', '#22c55e'],
-                borderWidth: 0
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                hoverOffset: 15
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: true,
-            plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } }
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: { size: 14, weight: 'bold' },
+                        padding: 15,
+                        usePointStyle: true,
+                        pointStyle: 'circle'
+                    }
+                },
+                tooltip: {
+                    bodyFont: { size: 14 },
+                    titleFont: { size: 14, weight: 'bold' },
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || ''
+                            const value = context.parsed || 0
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0)
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0
+                            return `${label}: ${value} client(s) (${percentage}%)`
+                        }
+                    }
+                }
+            },
+            layout: {
+                padding: 20
+            }
         }
     })
 }

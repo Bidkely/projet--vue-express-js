@@ -1,16 +1,37 @@
+cat > src/views/ListeView.vue << 'EOF'
 <template>
     <div class="h-full flex flex-col">
-        <div class="flex items-center space-x-3 mb-4 flex-shrink-0">
-            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center shadow-lg">
+        <!-- Entête -->
+        <div class="flex items-center space-x-3 mb-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
                 <span class="text-white text-xl">📋</span>
             </div>
             <h1 class="text-2xl font-bold text-gray-800">Liste des Clients</h1>
-            <span class="text-sm text-gray-500 ml-2">({{ clients.length }} clients)</span>
+            <span class="text-sm text-gray-500">({{ clients.length }} clients)</span>
         </div>
 
-        <div class="card-glass flex-1 overflow-auto">
+        <!-- Légende des actions -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex items-center justify-center space-x-6 text-sm">
+            <div class="flex items-center space-x-2">
+                <span class="text-blue-600">✏️</span>
+                <span class="text-gray-600">Cliquer pour modifier</span>
+            </div>
+            <div class="w-px h-4 bg-blue-200"></div>
+            <div class="flex items-center space-x-2">
+                <span class="text-red-600">🗑️</span>
+                <span class="text-gray-600">Cliquer pour supprimer</span>
+            </div>
+            <div class="w-px h-4 bg-blue-200"></div>
+            <div class="flex items-center space-x-2">
+                <span class="text-green-600">💾</span>
+                <span class="text-gray-600">Confirmer après modification</span>
+            </div>
+        </div>
+
+        <!-- Tableau -->
+        <div class="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl flex-1 overflow-auto">
             <table class="w-full">
-                <thead class="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10">
+                <thead class="bg-gray-50 sticky top-0">
                     <tr>
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">Nom</th>
                         <th class="px-4 py-3 text-left text-sm font-semibold text-gray-700">N° Compte</th>
@@ -21,21 +42,28 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     <tr v-for="client in clients" :key="client.id" class="hover:bg-gray-50 transition-colors">
-                        <td class="px-4 py-3 text-sm font-medium text-gray-800">{{ client.nom }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600 font-mono">{{ client.numCompte }}</td>
+                        <td class="px-4 py-3 text-sm font-medium">{{ client.nom }}</td>
+                        <td class="px-4 py-3 text-sm font-mono">{{ client.numCompte }}</td>
                         <td class="px-4 py-3 text-sm text-right font-semibold">{{ formatSolde(client.solde) }}</td>
                         <td class="px-4 py-3 text-center">
                             <span :class="getObsClass(client.solde)" class="px-2 py-1 rounded-full text-xs font-semibold">
                                 {{ getObservation(client.solde) }}
                             </span>
                         </td>
-                        <td class="px-4 py-3 text-center space-x-3">
-                            <button @click="openEditModal(client)" class="text-blue-600 hover:text-blue-800 transition-all hover:scale-110" title="Modifier">
-                                ✏️ Modifier
-                            </button>
-                            <button @click="openDeleteModal(client)" class="text-red-600 hover:text-red-800 transition-all hover:scale-110" title="Supprimer">
-                                🗑️ Supprimer
-                            </button>
+                        <td class="px-4 py-3 text-center">
+                            <div class="flex items-center justify-center space-x-3">
+                                <!-- Bouton Modifier -->
+                                <button @click="openEditModal(client)" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1">
+                                    <span>✏️</span>
+                                    <span class="text-sm font-medium">Modifier</span>
+                                </button>
+                                
+                                <!-- Bouton Supprimer -->
+                                <button @click="openDeleteModal(client)" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1">
+                                    <span>🗑️</span>
+                                    <span class="text-sm font-medium">Supprimer</span>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 </tbody>
@@ -45,43 +73,47 @@
             </div>
         </div>
 
-        <!-- Modal de modification -->
-        <div v-if="editModalOpen" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50" @click.self="closeEditModal">
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 animate-modal-in">
-                <div class="flex items-center justify-between mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">✏️ Modifier le client</h2>
-                    <button @click="closeEditModal" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+        <!-- Modal modification -->
+        <div v-if="showEditModal" class="fixed inset-0 z-50">
+            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="closeEditModal"></div>
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md mx-4">
+                <div class="bg-white rounded-2xl shadow-2xl p-6">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                            <span class="text-xl">✏️</span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-800">Modifier le client</h2>
+                    </div>
+                    <p class="text-gray-500 text-sm mb-4">Modifiez les informations ci-dessous :</p>
+                    <form @submit.prevent="confirmUpdate">
+                        <div class="mb-3">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Numéro de compte</label>
+                            <input v-model="editForm.numCompte" type="text" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="mb-3">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Nom complet</label>
+                            <input v-model="editForm.nom" type="text" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-1">Solde (€)</label>
+                            <input v-model.number="editForm.solde" type="number" step="0.01" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="flex gap-3">
+                            <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-semibold">
+                                💾 Enregistrer
+                            </button>
+                            <button type="button" @click="closeEditModal" class="flex-1 bg-gray-200 hover:bg-gray-300 py-2 rounded-xl font-semibold">
+                                Annuler
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                
-                <form @submit.prevent="confirmUpdate" class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Numéro de compte</label>
-                        <input v-model="editForm.numCompte" type="text" required class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nom complet</label>
-                        <input v-model="editForm.nom" type="text" required class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-1">Solde (€)</label>
-                        <input v-model.number="editForm.solde" type="number" step="0.01" required class="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    </div>
-                    
-                    <div class="flex space-x-3 pt-4">
-                        <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-semibold transition-all">
-                            💾 Enregistrer
-                        </button>
-                        <button type="button" @click="closeEditModal" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded-xl font-semibold transition-all">
-                            Annuler
-                        </button>
-                    </div>
-                </form>
             </div>
         </div>
 
-        <!-- Modals -->
-        <ConfirmModal ref="confirmUpdateModal" />
-        <ConfirmModal ref="confirmDeleteModal" />
+        <!-- Modals de confirmation -->
+        <ConfirmModal ref="deleteModal" />
+        <ConfirmModal ref="updateModal" />
     </div>
 </template>
 
@@ -91,11 +123,11 @@ import { clientService } from '../services/api'
 import ConfirmModal from '../components/ConfirmModal.vue'
 
 const clients = ref([])
-const editModalOpen = ref(false)
+const showEditModal = ref(false)
 const editForm = ref({ id: '', numCompte: '', nom: '', solde: '' })
 
-const confirmUpdateModal = ref(null)
-const confirmDeleteModal = ref(null)
+const deleteModal = ref(null)
+const updateModal = ref(null)
 
 const showMessage = (msg, type) => {
     window.dispatchEvent(new CustomEvent('show-message', { detail: { message: msg, type } }))
@@ -122,32 +154,25 @@ const formatSolde = (solde) => {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(solde)
 }
 
-// Modification
 const openEditModal = (client) => {
     editForm.value = { ...client }
-    editModalOpen.value = true
+    showEditModal.value = true
 }
 
 const closeEditModal = () => {
-    editModalOpen.value = false
+    showEditModal.value = false
     editForm.value = { id: '', numCompte: '', nom: '', solde: '' }
 }
 
 const confirmUpdate = async () => {
-    const confirmed = await confirmUpdateModal.value.show({
-        title: 'Confirmation',
-        message: `Voulez-vous vraiment modifier les informations du client "${editForm.value.nom}" ?`,
+    const confirmed = await updateModal.value.show({
+        title: 'Confirmation de modification',
+        message: `Voulez-vous enregistrer les modifications pour "${editForm.value.nom}" ?`,
         type: 'warning',
         confirmText: 'Oui, modifier'
     })
     
     if (confirmed) {
-        await updateClient()
-    }
-}
-
-const updateClient = async () => {
-    try {
         const result = await clientService.update(editForm.value.id, editForm.value)
         if (result.success) {
             showMessage('✅ Modification réussie !', 'success')
@@ -156,16 +181,13 @@ const updateClient = async () => {
         } else {
             showMessage('❌ Modification échouée', 'error')
         }
-    } catch {
-        showMessage('❌ Modification échouée', 'error')
     }
 }
 
-// Suppression
 const openDeleteModal = async (client) => {
-    const confirmed = await confirmDeleteModal.value.show({
+    const confirmed = await deleteModal.value.show({
         title: 'Confirmation de suppression',
-        message: `Voulez-vous vraiment supprimer le client "${client.nom}" ? Cette action est irréversible.`,
+        message: `Voulez-vous vraiment supprimer "${client.nom}" ? Cette action est irréversible.`,
         type: 'danger',
         confirmText: 'Oui, supprimer'
     })
@@ -183,19 +205,3 @@ const openDeleteModal = async (client) => {
 
 onMounted(() => loadClients())
 </script>
-
-<style>
-.animate-modal-in {
-    animation: modalIn 0.2s ease-out;
-}
-@keyframes modalIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95) translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
-}
-</style>
