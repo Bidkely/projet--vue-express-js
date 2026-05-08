@@ -26,9 +26,9 @@ const addClient = async (req, res) => {
     } catch (error) {
         console.error(error);
         if (error.code === 'ER_DUP_ENTRY') {
-            res.status(400).json({ success: false, message: 'Ce numéro de compte existe déjà' });
+            res.status(400).json({ success: false, message: 'Ce numéro de compte existe déjà !' });
         } else {
-            res.status(500).json({ success: false, message: "Insertion échouée" });
+            res.status(500).json({ success: false, message: 'Erreur lors de l\'insertion' });
         }
     }
 };
@@ -48,7 +48,11 @@ const updateClient = async (req, res) => {
         }
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: 'Modification échouée' });
+        if (error.code === 'ER_DUP_ENTRY') {
+            res.status(400).json({ success: false, message: 'Ce numéro de compte existe déjà pour un autre client !' });
+        } else {
+            res.status(500).json({ success: false, message: 'Erreur lors de la modification' });
+        }
     }
 };
 
@@ -65,7 +69,7 @@ const deleteClient = async (req, res) => {
         }
     } catch (error) {
         console.error(error);
-        res.status(500).json({ success: false, message: 'Suppression échouée' });
+        res.status(500).json({ success: false, message: 'Erreur lors de la suppression' });
     }
 };
 

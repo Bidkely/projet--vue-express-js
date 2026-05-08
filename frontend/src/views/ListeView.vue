@@ -1,7 +1,5 @@
-cat > src/views/ListeView.vue << 'EOF'
 <template>
     <div class="h-full flex flex-col">
-        <!-- Entête -->
         <div class="flex items-center space-x-3 mb-4">
             <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center">
                 <span class="text-white text-xl">📋</span>
@@ -10,7 +8,6 @@ cat > src/views/ListeView.vue << 'EOF'
             <span class="text-sm text-gray-500">({{ clients.length }} clients)</span>
         </div>
 
-        <!-- Légende des actions -->
         <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 flex items-center justify-center space-x-6 text-sm">
             <div class="flex items-center space-x-2">
                 <span class="text-blue-600">✏️</span>
@@ -21,14 +18,8 @@ cat > src/views/ListeView.vue << 'EOF'
                 <span class="text-red-600">🗑️</span>
                 <span class="text-gray-600">Cliquer pour supprimer</span>
             </div>
-            <div class="w-px h-4 bg-blue-200"></div>
-            <div class="flex items-center space-x-2">
-                <span class="text-green-600">💾</span>
-                <span class="text-gray-600">Confirmer après modification</span>
-            </div>
         </div>
 
-        <!-- Tableau -->
         <div class="bg-white/80 backdrop-blur-lg rounded-2xl shadow-xl flex-1 overflow-auto">
             <table class="w-full">
                 <thead class="bg-gray-50 sticky top-0">
@@ -52,13 +43,10 @@ cat > src/views/ListeView.vue << 'EOF'
                         </td>
                         <td class="px-4 py-3 text-center">
                             <div class="flex items-center justify-center space-x-3">
-                                <!-- Bouton Modifier -->
                                 <button @click="openEditModal(client)" class="bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1">
                                     <span>✏️</span>
                                     <span class="text-sm font-medium">Modifier</span>
                                 </button>
-                                
-                                <!-- Bouton Supprimer -->
                                 <button @click="openDeleteModal(client)" class="bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1.5 rounded-lg transition-all flex items-center space-x-1">
                                     <span>🗑️</span>
                                     <span class="text-sm font-medium">Supprimer</span>
@@ -84,23 +72,29 @@ cat > src/views/ListeView.vue << 'EOF'
                         </div>
                         <h2 class="text-2xl font-bold text-gray-800">Modifier le client</h2>
                     </div>
+                    
                     <p class="text-gray-500 text-sm mb-4">Modifiez les informations ci-dessous :</p>
+                    
                     <form @submit.prevent="confirmUpdate">
                         <div class="mb-3">
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Numéro de compte</label>
-                            <input v-model="editForm.numCompte" type="text" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500">
+                            <input v-model="editForm.numCompte" type="text" class="w-full px-4 py-2 border-2 rounded-xl focus:ring-2 focus:ring-blue-500" :class="editError ? 'border-red-500 bg-red-50' : 'border-gray-300'">
+                            <p v-if="editError" class="text-red-500 text-sm mt-1">{{ editError }}</p>
                         </div>
                         <div class="mb-3">
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Nom complet</label>
-                            <input v-model="editForm.nom" type="text" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500">
+                            <input v-model="editForm.nom" type="text" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl">
                         </div>
                         <div class="mb-4">
                             <label class="block text-sm font-semibold text-gray-700 mb-1">Solde (€)</label>
-                            <input v-model.number="editForm.solde" type="number" step="0.01" class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500">
+                            <input v-model.number="editForm.solde" type="number" step="0.01" class="w-full px-4 py-2 border-2 border-gray-300 rounded-xl">
                         </div>
                         <div class="flex gap-3">
-                            <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-semibold">
-                                💾 Enregistrer
+                            <button type="submit" :disabled="updateLoading" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-semibold">
+                                <span v-if="!updateLoading">💾 Enregistrer</span>
+                                <div v-else class="flex items-center justify-center">
+                                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                </div>
                             </button>
                             <button type="button" @click="closeEditModal" class="flex-1 bg-gray-200 hover:bg-gray-300 py-2 rounded-xl font-semibold">
                                 Annuler
@@ -111,7 +105,6 @@ cat > src/views/ListeView.vue << 'EOF'
             </div>
         </div>
 
-        <!-- Modals de confirmation -->
         <ConfirmModal ref="deleteModal" />
         <ConfirmModal ref="updateModal" />
     </div>
@@ -125,6 +118,8 @@ import ConfirmModal from '../components/ConfirmModal.vue'
 const clients = ref([])
 const showEditModal = ref(false)
 const editForm = ref({ id: '', numCompte: '', nom: '', solde: '' })
+const editError = ref('')
+const updateLoading = ref(false)
 
 const deleteModal = ref(null)
 const updateModal = ref(null)
@@ -156,12 +151,14 @@ const formatSolde = (solde) => {
 
 const openEditModal = (client) => {
     editForm.value = { ...client }
+    editError.value = ''
     showEditModal.value = true
 }
 
 const closeEditModal = () => {
     showEditModal.value = false
     editForm.value = { id: '', numCompte: '', nom: '', solde: '' }
+    editError.value = ''
 }
 
 const confirmUpdate = async () => {
@@ -173,14 +170,36 @@ const confirmUpdate = async () => {
     })
     
     if (confirmed) {
+        await updateClient()
+    }
+}
+
+const updateClient = async () => {
+    updateLoading.value = true
+    editError.value = ''
+    
+    try {
         const result = await clientService.update(editForm.value.id, editForm.value)
         if (result.success) {
             showMessage('✅ Modification réussie !', 'success')
             await loadClients()
             closeEditModal()
         } else {
-            showMessage('❌ Modification échouée', 'error')
+            if (result.message && result.message.includes('numéro de compte existe déjà')) {
+                editError.value = result.message
+                showMessage('❌ ' + result.message, 'error')
+            } else {
+                showMessage('❌ ' + (result.message || 'Modification échouée'), 'error')
+            }
         }
+    } catch (error) {
+        const errorMsg = error.response?.data?.message || 'Erreur de connexion'
+        if (errorMsg.includes('numéro de compte existe déjà')) {
+            editError.value = errorMsg
+        }
+        showMessage('❌ ' + errorMsg, 'error')
+    } finally {
+        updateLoading.value = false
     }
 }
 
@@ -198,7 +217,7 @@ const openDeleteModal = async (client) => {
             showMessage('✅ Suppression réussie !', 'success')
             await loadClients()
         } else {
-            showMessage('❌ Suppression échouée', 'error')
+            showMessage('❌ ' + (result.message || 'Suppression échouée'), 'error')
         }
     }
 }
